@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"crypto/subtle"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -27,11 +26,11 @@ type Config struct {
 }
 
 type Server struct {
-	config Config
-	http   *http.Server
-	listen net.Listener
-	serve  chan error
-	repo   repo.Repository
+	config       Config
+	http         *http.Server
+	listen       net.Listener
+	serve        chan error
+	repositories *repositoryState
 }
 
 func New(config Config) (*Server, error) {
@@ -48,12 +47,14 @@ func New(config Config) (*Server, error) {
 	}
 	config.FrontendDir = frontendDir
 
+	repositories := &repositoryState{}
 	return &Server{
 		config: config,
 		http: &http.Server{
-			Handler: newHandler(config.FrontendDir, nil, config.RepositoryConfigPath, config.AuthUsername, config.AuthPassword),
+			Handler: newHandlerWithState(config.FrontendDir, repositories, config.RepositoryConfigPath, config.RepositoryPassword, config.AuthUsername, config.AuthPassword),
 		},
-		serve: make(chan error, 1),
+		serve:        make(chan error, 1),
+		repositories: repositories,
 	}, nil
 }
 
@@ -87,17 +88,20 @@ func (s *Server) OpenRepository(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("open repository: %w", err)
 	}
-	s.repo = r
-	s.http.Handler = newHandler(s.config.FrontendDir, r, s.config.RepositoryConfigPath, s.config.AuthUsername, s.config.AuthPassword)
+	s.repositories.mu.Lock()
+	s.repositories.repository = r
+	s.repositories.mu.Unlock()
 	return nil
 }
 
 func (s *Server) CloseRepository(ctx context.Context) error {
-	if s.repo == nil {
+	s.repositories.mu.Lock()
+	defer s.repositories.mu.Unlock()
+	if s.repositories.repository == nil {
 		return nil
 	}
-	err := s.repo.Close(ctx)
-	s.repo = nil
+	err := s.repositories.repository.Close(ctx)
+	s.repositories.repository = nil
 	return err
 }
 
@@ -120,10 +124,21 @@ func (s *Server) Wait() error {
 }
 
 func newHandler(frontendDir string, repository repo.Repository, configPath, authUsername, authPassword string) http.Handler {
+	state := &repositoryState{repository: repository}
+	return newHandlerWithState(frontendDir, state, configPath, "", authUsername, authPassword)
+}
+
+func newHandlerWithState(frontendDir string, repositories *repositoryState, configPath, repositoryPassword, authUsername, authPassword string) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/repo/status", statusHandler(repository))
-	mux.HandleFunc("/api/v1/cli", cliInfoHandler(configPath))
-	mux.HandleFunc("/api/v1/current-user", currentUserHandler)
+	registerRepositoryRoutes(mux, repositories, configPath, repositoryPassword)
+	registerPolicyRoutes(mux, repositories)
+	registerSnapshotRoutes(mux, repositories)
+	registerSourceRoutes(mux, repositories)
+	registerPathRoutes(mux)
+	registerObjectRoutes(mux, repositories)
+	registerDataRoutes(mux)
+	registerSystemRoutes(mux, configPath)
+	registerNotificationRoutes(mux, repositories)
 	var handler http.Handler = mux
 	if frontendDir == "" {
 		return basicAuthHandler(handler, authUsername, authPassword)
@@ -132,39 +147,6 @@ func newHandler(frontendDir string, repository repo.Repository, configPath, auth
 	fileServer := http.FileServer(http.Dir(frontendDir))
 	mux.Handle("/", frontendHandler(frontendDir, fileServer))
 	return basicAuthHandler(handler, authUsername, authPassword)
-}
-
-func currentUserHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"username": repo.GetDefaultUserName(ctx),
-		"hostname": repo.GetDefaultHostName(ctx),
-	})
-}
-
-func cliInfoHandler(configPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		executable, err := os.Executable()
-		if err != nil {
-			executable = "kopia"
-		}
-		if strings.Contains(executable, " ") {
-			executable = `"` + executable + `"`
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"executable": executable + " --config-file=" + quoteIfNeeded(configPath),
-		})
-	}
-}
-
-func quoteIfNeeded(value string) string {
-	if strings.Contains(value, " ") {
-		return `"` + value + `"`
-	}
-	return value
 }
 
 func basicAuthHandler(next http.Handler, expectedUsername, expectedPassword string) http.Handler {
@@ -182,34 +164,6 @@ func basicAuthHandler(next http.Handler, expectedUsername, expectedPassword stri
 		}
 		next.ServeHTTP(w, r)
 	})
-}
-
-func statusHandler(repository repo.Repository) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		result := map[string]any{
-			"apiVersion": "v1",
-			"connected":  repository != nil,
-		}
-		if repository != nil {
-			result["clientOptions"] = repository.ClientOptions()
-			if direct, ok := repository.(repo.DirectRepository); ok {
-				contentFormat := direct.ContentReader().ContentFormat()
-				mutableParameters := contentFormat.GetCachedMutableParameters()
-				result["configFile"] = direct.ConfigFilename()
-				result["formatVersion"] = mutableParameters.Version
-				result["hash"] = contentFormat.GetHashFunction()
-				result["encryption"] = contentFormat.GetEncryptionAlgorithm()
-				result["ecc"] = contentFormat.GetECCAlgorithm()
-				result["eccOverheadPercent"] = contentFormat.GetECCOverheadPercent()
-				result["maxPackSize"] = mutableParameters.MaxPackSize
-				result["splitter"] = direct.ObjectFormat().Splitter
-				result["storage"] = direct.BlobReader().ConnectionInfo().Type
-				result["supportsContentCompression"] = direct.ContentReader().SupportsContentCompression()
-			}
-		}
-		_ = json.NewEncoder(w).Encode(result)
-	}
 }
 
 func frontendHandler(frontendDir string, fileServer http.Handler) http.Handler {
