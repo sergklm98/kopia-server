@@ -31,6 +31,7 @@ type Server struct {
 	listen       net.Listener
 	serve        chan error
 	repositories *repositoryState
+	tasks        *TaskManager
 }
 
 func New(config Config) (*Server, error) {
@@ -48,13 +49,15 @@ func New(config Config) (*Server, error) {
 	config.FrontendDir = frontendDir
 
 	repositories := &repositoryState{}
+	tasks := NewTaskManager()
 	return &Server{
 		config: config,
 		http: &http.Server{
-			Handler: newHandlerWithState(config.FrontendDir, repositories, config.RepositoryConfigPath, config.RepositoryPassword, config.AuthUsername, config.AuthPassword),
+			Handler: newHandlerWithState(config.FrontendDir, repositories, tasks, config.RepositoryConfigPath, config.RepositoryPassword, config.AuthUsername, config.AuthPassword),
 		},
 		serve:        make(chan error, 1),
 		repositories: repositories,
+		tasks:        tasks,
 	}, nil
 }
 
@@ -95,6 +98,10 @@ func (s *Server) OpenRepository(ctx context.Context) error {
 }
 
 func (s *Server) CloseRepository(ctx context.Context) error {
+	s.tasks.CancelAll()
+	if err := s.tasks.WaitForIdle(ctx); err != nil {
+		return fmt.Errorf("wait for server tasks: %w", err)
+	}
 	s.repositories.mu.Lock()
 	defer s.repositories.mu.Unlock()
 	if s.repositories.repository == nil {
@@ -113,10 +120,15 @@ func (s *Server) Addr() net.Addr {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	if s.listen == nil {
-		return nil
+	var shutdownErr error
+	if s.listen != nil {
+		shutdownErr = s.http.Shutdown(ctx)
 	}
-	return s.http.Shutdown(ctx)
+	s.tasks.CancelAll()
+	if err := s.tasks.WaitForIdle(ctx); err != nil {
+		return errors.Join(shutdownErr, fmt.Errorf("wait for server tasks: %w", err))
+	}
+	return shutdownErr
 }
 
 func (s *Server) Wait() error {
@@ -125,10 +137,10 @@ func (s *Server) Wait() error {
 
 func newHandler(frontendDir string, repository repo.Repository, configPath, authUsername, authPassword string) http.Handler {
 	state := &repositoryState{repository: repository}
-	return newHandlerWithState(frontendDir, state, configPath, "", authUsername, authPassword)
+	return newHandlerWithState(frontendDir, state, NewTaskManager(), configPath, "", authUsername, authPassword)
 }
 
-func newHandlerWithState(frontendDir string, repositories *repositoryState, configPath, repositoryPassword, authUsername, authPassword string) http.Handler {
+func newHandlerWithState(frontendDir string, repositories *repositoryState, tasks *TaskManager, configPath, repositoryPassword, authUsername, authPassword string) http.Handler {
 	mux := http.NewServeMux()
 	registerRepositoryRoutes(mux, repositories, configPath, repositoryPassword)
 	registerPolicyRoutes(mux, repositories)
@@ -137,6 +149,7 @@ func newHandlerWithState(frontendDir string, repositories *repositoryState, conf
 	registerPathRoutes(mux)
 	registerObjectRoutes(mux, repositories)
 	registerDataRoutes(mux)
+	registerTaskAndControlRoutes(mux, tasks)
 	registerSystemRoutes(mux, configPath)
 	registerNotificationRoutes(mux, repositories)
 	var handler http.Handler = mux
