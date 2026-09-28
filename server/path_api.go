@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sergklm98/kopia-lib/repo"
-	"github.com/sergklm98/kopia-lib/repo/snapshot"
+	"github.com/sergklm98/kopia-lib/lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo/snapshot"
 )
 
 func registerPathRoutes(mux *http.ServeMux) {

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sergklm98/kopia-lib/repo"
-	"github.com/sergklm98/kopia-lib/repo/snapshot"
+	"github.com/sergklm98/kopia-lib/lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo/snapshot"
 )
 
 func TestSourceCreateAndListAPI(t *testing.T) {

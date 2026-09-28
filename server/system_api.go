@@ -13,7 +13,7 @@ import (
 
 	"github.com/natefinch/atomic"
 
-	"github.com/sergklm98/kopia-lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo"
 )
 
 func registerSystemRoutes(mux *http.ServeMux, configPath string) {

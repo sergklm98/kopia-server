@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/natefinch/atomic v1.0.1
-	github.com/sergklm98/kopia-lib v0.0.0
+	github.com/sergklm98/kopia-lib/lib v0.0.0
 	github.com/stretchr/testify v1.12.1
 )
 
@@ -105,4 +105,4 @@ require (
 	gopkg.in/kothar/go-backblaze.v0 v0.0.0-20210124194846-35409b867216 // indirect
 )
 
-replace github.com/sergklm98/kopia-lib => ../kopia-lib
+replace github.com/sergklm98/kopia-lib/lib => ../kopia-lib/lib

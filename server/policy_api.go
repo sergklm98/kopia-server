@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"sort"
 
-	"github.com/sergklm98/kopia-lib/repo"
-	"github.com/sergklm98/kopia-lib/repo/manifest"
-	"github.com/sergklm98/kopia-lib/repo/snapshot"
+	"github.com/sergklm98/kopia-lib/lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo/manifest"
+	"github.com/sergklm98/kopia-lib/lib/repo/snapshot"
 )
 
 func registerPolicyRoutes(mux *http.ServeMux, repositories *repositoryState) {

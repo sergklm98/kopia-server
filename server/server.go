@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sergklm98/kopia-lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo"
 )
 
 const DefaultListenAddress = "127.0.0.1:51515"

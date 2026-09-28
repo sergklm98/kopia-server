@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sergklm98/kopia-lib/repo"
-	"github.com/sergklm98/kopia-lib/repo/blob"
-	"github.com/sergklm98/kopia-lib/repo/maintenance"
-	"github.com/sergklm98/kopia-lib/repo/snapshot"
+	"github.com/sergklm98/kopia-lib/lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo/blob"
+	"github.com/sergklm98/kopia-lib/lib/repo/maintenance"
+	"github.com/sergklm98/kopia-lib/lib/repo/snapshot"
 )
 
 type repositoryConnectRequest struct {

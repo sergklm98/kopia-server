@@ -10,17 +10,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sergklm98/kopia-lib/repo"
-	"github.com/sergklm98/kopia-lib/repo/blob"
-	"github.com/sergklm98/kopia-lib/repo/blob/filesystem"
-	"github.com/sergklm98/kopia-lib/repo/blob/throttling"
-	"github.com/sergklm98/kopia-lib/repo/compression"
-	"github.com/sergklm98/kopia-lib/repo/ecc"
-	"github.com/sergklm98/kopia-lib/repo/encryption"
-	"github.com/sergklm98/kopia-lib/repo/hashing"
-	"github.com/sergklm98/kopia-lib/repo/maintenance"
-	"github.com/sergklm98/kopia-lib/repo/snapshot"
-	"github.com/sergklm98/kopia-lib/repo/splitter"
+	"github.com/sergklm98/kopia-lib/lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo/blob"
+	"github.com/sergklm98/kopia-lib/lib/repo/blob/filesystem"
+	"github.com/sergklm98/kopia-lib/lib/repo/blob/throttling"
+	"github.com/sergklm98/kopia-lib/lib/repo/compression"
+	"github.com/sergklm98/kopia-lib/lib/repo/ecc"
+	"github.com/sergklm98/kopia-lib/lib/repo/encryption"
+	"github.com/sergklm98/kopia-lib/lib/repo/hashing"
+	"github.com/sergklm98/kopia-lib/lib/repo/maintenance"
+	"github.com/sergklm98/kopia-lib/lib/repo/snapshot"
+	"github.com/sergklm98/kopia-lib/lib/repo/splitter"
 )
 
 func TestSupportedAlgorithmsAPI(t *testing.T) {

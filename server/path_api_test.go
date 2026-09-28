@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sergklm98/kopia-lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo"
 )
 
 func TestPathResolveAPI(t *testing.T) {

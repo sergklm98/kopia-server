@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sergklm98/kopia-lib/notification"
-	"github.com/sergklm98/kopia-lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/notification"
+	"github.com/sergklm98/kopia-lib/lib/repo"
 )
 
 func registerNotificationRoutes(mux *http.ServeMux, repositories *repositoryState) {

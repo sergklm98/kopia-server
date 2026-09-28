@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/sergklm98/kopia-lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo"
 )
 
 type repositoryState struct {

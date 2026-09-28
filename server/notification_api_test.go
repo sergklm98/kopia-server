@@ -12,9 +12,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/sergklm98/kopia-lib/notification"
-	"github.com/sergklm98/kopia-lib/repo"
-	"github.com/sergklm98/kopia-lib/repo/blob/filesystem"
+	"github.com/sergklm98/kopia-lib/lib/notification"
+	"github.com/sergklm98/kopia-lib/lib/repo"
+	"github.com/sergklm98/kopia-lib/lib/repo/blob/filesystem"
 )
 
 func openNotificationAPITestRepository(t *testing.T) repo.Repository {

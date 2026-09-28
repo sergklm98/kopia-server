@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sergklm98/kopia-lib/repo/object"
+	"github.com/sergklm98/kopia-lib/lib/repo/object"
 )
 
 func registerObjectRoutes(mux *http.ServeMux, repositories *repositoryState) {
